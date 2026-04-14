@@ -26,42 +26,62 @@ const urlTestBaseOption = {
   url: 'https://cp.cloudflare.com/generate_204',
 }
 
-// 智能策略(url-test)节点筛选关键字：用于从全部节点中过滤出常用地区
-const surgeSmartRegex =
-  /(Hong\s*Kong|HK|Japan|JP|Singapore|SG|Taiwan|TW|United\s*States|US|美国|日本|新加坡|台湾)/i
 // 流量信息节点筛选关键字：只把带流量信息的节点放到“流量信息”组里
 const surgeTrafficRegex = /(SSRDOG|XgCloud)/i
+
+function escapeRegex(text) {
+  return String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function buildRegionRegex(keywords, codes = []) {
+  const keywordPatterns = keywords.map((keyword) =>
+    String(keyword)
+      .split(/\s+/)
+      .map((part) => escapeRegex(part))
+      .join('\\s*')
+  )
+  const codePatterns = codes.map(
+    (code) => `(?:^|[^A-Za-z])${escapeRegex(code)}(?:$|[^A-Za-z])`
+  )
+  return new RegExp([...keywordPatterns, ...codePatterns].join('|'), 'i')
+}
 // 地区分组名称/匹配/图标：用于生成“香港节点/美国节点...”等分组
 const surgeRegionDefs = [
   {
     name: '香港节点',
-    regex: /(香港|Hong\s*Kong|HK)/i,
+    regex: buildRegionRegex(['香港', 'Hong Kong'], ['HK', 'HKG']),
     icon: 'https://raw.githubusercontent.com/Semporia/Hand-Painted-icon/master/Rounded_Rectangle/Hong_Kong.png',
   },
   {
     name: '美国节点',
-    regex: /(美国|United\s*States|US)/i,
+    regex: buildRegionRegex(['美国', 'United States'], ['US', 'USA']),
     icon: 'https://raw.githubusercontent.com/Semporia/Hand-Painted-icon/master/Rounded_Rectangle/United_States.png',
   },
   {
     name: '日本节点',
-    regex: /(日本|Japan|JP)/i,
+    regex: buildRegionRegex(['日本', 'Japan'], ['JP', 'JPN']),
     icon: 'https://raw.githubusercontent.com/Semporia/Hand-Painted-icon/master/Rounded_Rectangle/Japan.png',
   },
   {
     name: '台湾节点',
-    regex: /(台湾|Taiwan|TW)/i,
+    regex: buildRegionRegex(['台湾', 'Taiwan'], ['TW', 'TWN']),
     icon: 'https://raw.githubusercontent.com/Semporia/Hand-Painted-icon/master/Rounded_Rectangle/China.png',
   },
   {
     name: '自建节点',
-    regex: /(自建|家宽|专线|Home|DIY)/i,
+    regex: buildRegionRegex(['自建', '家宽', 'Home', 'DIY', 'DMIT']),
+    type: 'select',
     icon: 'https://raw.githubusercontent.com/hujx99/Proxy_Configuration/main/photo/vps.png',
   },
   {
     name: '新加坡节点',
-    regex: /(新加坡|Singapore|SG)/i,
+    regex: buildRegionRegex(['新加坡', 'Singapore'], ['SG', 'SGP']),
     icon: 'https://raw.githubusercontent.com/Semporia/Hand-Painted-icon/master/Rounded_Rectangle/Singapore.png',
+  },
+  {
+    name: '土耳其节点',
+    regex: buildRegionRegex(['土耳其', 'Turkey'], ['TR', 'TUR']),
+    icon: 'https://raw.githubusercontent.com/Semporia/Hand-Painted-icon/master/Rounded_Rectangle/Turkey.png',
   },
 ]
 
@@ -70,7 +90,6 @@ const serviceMeta = {
   流量信息:   { icon: 'https://raw.githubusercontent.com/Semporia/Hand-Painted-icon/master/Universal/Speedtest.png' },
   Proxy:     { icon: 'https://raw.githubusercontent.com/lige47/QuanX-icon-rule/main/icon/05icon/liuliang.png' },
   ChatGPT:   { url: 'http://www.gstatic.com/generate_204', icon: 'https://registry.npmmirror.com/@lobehub/icons-static-png/latest/files/light/openai.png'  },
-  智能策略:   { url: 'http://www.apple.com/library/test/success.html', icon: 'https://raw.githubusercontent.com/lige47/QuanX-icon-rule/main/icon/05icon/lightning(5).png' },
   手动选择:   { icon: 'https://raw.githubusercontent.com/Semporia/Hand-Painted-icon/master/Universal/Auto_Speed.png' },
   All:       { icon: 'https://raw.githubusercontent.com/Semporia/Hand-Painted-icon/master/Universal/Airport.png' },
 }
@@ -96,6 +115,11 @@ function uniqueList(list) {
   return result
 }
 
+function listOrFallback(list, fallback) {
+  const normalizedList = uniqueList(list)
+  return normalizedList.length > 0 ? normalizedList : uniqueList(fallback)
+}
+
 // 按正则过滤代理名列表，安全处理空输入
 function filterProxyNamesByRegex(proxyNames, regex) {
   if (!Array.isArray(proxyNames) || !regex) return []
@@ -103,6 +127,8 @@ function filterProxyNamesByRegex(proxyNames, regex) {
 }
 
 function main(config) {
+  config = config || {}
+
   // 开关关闭时不改动配置
   if (!enable) return config
 
@@ -120,12 +146,16 @@ function main(config) {
   // 全部节点名/真实节点名（不含直连）
   const allProxyNames = config.proxies.map((proxy) => proxy.name)
   const realProxyNames = allProxyNames.filter((name) => name !== '直连')
+  const allGroupProxies = listOrFallback(realProxyNames, ['直连'])
   // 仅流量信息节点与其兜底列表
   const trafficProxyNames = filterProxyNamesByRegex(realProxyNames, surgeTrafficRegex)
-  const safeTrafficProxyNames =
-    trafficProxyNames.length > 0 ? trafficProxyNames : realProxyNames
+  const trafficGroupProxies = listOrFallback(trafficProxyNames, ['直连'])
   // 手动选择：排除流量信息节点，防止手动组被“测速节点”淹没
   const manualProxyNames = realProxyNames.filter((name) => !surgeTrafficRegex.test(name))
+  const manualGroupProxies = listOrFallback(
+    manualProxyNames.length > 0 ? [...manualProxyNames, 'All'] : ['All'],
+    ['直连']
+  )
 
   // 按地区生成策略组与地区节点映射
   const regionProxyGroups = []
@@ -133,31 +163,36 @@ function main(config) {
   surgeRegionDefs.forEach((region) => {
     const proxies = filterProxyNamesByRegex(realProxyNames, region.regex)
     if (proxies.length === 0) return
+    const groupType = region.type || 'url-test'
+    const regionGroupBaseOption =
+      groupType === 'select' ? groupBaseOption : urlTestBaseOption
     regionProxyNames.set(region.name, proxies)
     regionProxyGroups.push({
-      ...urlTestBaseOption,
+      ...regionGroupBaseOption,
       name: region.name,
-      type: 'url-test',
+      type: groupType,
       proxies: proxies,
+      hidden: region.name !== '自建节点',
       icon: region.icon,
     })
   })
 
-  // 智能策略：只挑常见地区，若为空则退回全部节点
-  const smartProxyNames = uniqueList(
-    filterProxyNamesByRegex(realProxyNames, surgeSmartRegex)
+  // Proxy：直接承接地区分组，省掉单独的“智能策略”中间层
+  const proxyRegionGroupNames = uniqueList(
+    surgeRegionDefs.map((region) =>
+      regionProxyNames.get(region.name)?.length ? region.name : null
+    )
   )
-  const safeSmartProxyNames = smartProxyNames.length > 0 ? smartProxyNames : realProxyNames
-
-  // ChatGPT：仅使用 US/自建/JP/TW 地区测量组，若没有则使用智能策略兜底
   const chatgptProxyNames = uniqueList([
     regionProxyNames.get('自建节点')?.length ? '自建节点' : null,
     regionProxyNames.get('美国节点')?.length ? '美国节点' : null,
-    regionProxyNames.get('日本节点')?.length ? '日本节点' : null,
-    regionProxyNames.get('台湾节点')?.length ? '台湾节点' : null,
+    'Proxy',
   ])
-  const safeChatgptProxyNames =
-    chatgptProxyNames.length > 0 ? chatgptProxyNames : safeSmartProxyNames
+  const proxyGroupProxies = uniqueList([
+    ...proxyRegionGroupNames,
+    '手动选择',
+    '直连',
+  ])
 
   // 构建策略组顺序：基础组 -> 地区组 -> All
   config['proxy-groups'] = [
@@ -165,14 +200,14 @@ function main(config) {
       ...groupBaseOption,
       name: '流量信息',
       type: 'select',
-      proxies: uniqueList([...safeTrafficProxyNames]),
+      proxies: trafficGroupProxies,
       icon: serviceMeta['流量信息'].icon,
     },
     {
       ...groupBaseOption,
       name: 'Proxy',
       type: 'select',
-      proxies: ['智能策略', '手动选择', '直连'],
+      proxies: proxyGroupProxies,
       icon: serviceMeta['Proxy'].icon,
     },
     {
@@ -181,21 +216,14 @@ function main(config) {
       type: 'select',
       url: serviceMeta['ChatGPT'].url,
       interval: 3600,
-      proxies: safeChatgptProxyNames,
+      proxies: chatgptProxyNames,
       icon: serviceMeta['ChatGPT'].icon,
-    },
-    {
-      ...urlTestBaseOption,
-      name: '智能策略',
-      type: 'url-test',
-      proxies: safeSmartProxyNames,
-      icon: serviceMeta['智能策略'].icon,
     },
     {
       ...groupBaseOption,
       name: '手动选择',
       type: 'select',
-      proxies: uniqueList([...manualProxyNames, 'All']),
+      proxies: manualGroupProxies,
       icon: serviceMeta['手动选择'].icon,
     },
     ...regionProxyGroups,
@@ -203,7 +231,7 @@ function main(config) {
       ...groupBaseOption,
       name: 'All',
       type: 'select',
-      proxies: realProxyNames,
+      proxies: allGroupProxies,
       icon: serviceMeta['All'].icon,
     },
   ]
