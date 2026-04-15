@@ -87,11 +87,20 @@ const surgeRegionDefs = [
 
 // 策略组图标与测速 URL：用于 UI 展示与测速配置
 const serviceMeta = {
-  流量信息:   { icon: 'https://raw.githubusercontent.com/Semporia/Hand-Painted-icon/master/Universal/Speedtest.png' },
-  Proxy:     { icon: 'https://raw.githubusercontent.com/lige47/QuanX-icon-rule/main/icon/05icon/liuliang.png' },
-  ChatGPT:   { url: 'http://www.gstatic.com/generate_204', icon: 'https://registry.npmmirror.com/@lobehub/icons-static-png/latest/files/light/openai.png'  },
-  手动选择:   { icon: 'https://raw.githubusercontent.com/Semporia/Hand-Painted-icon/master/Universal/Auto_Speed.png' },
-  All:       { icon: 'https://raw.githubusercontent.com/Semporia/Hand-Painted-icon/master/Universal/Airport.png' },
+  流量信息:    { icon: 'https://raw.githubusercontent.com/Semporia/Hand-Painted-icon/master/Universal/Speedtest.png' },
+  Proxy:      { icon: 'https://raw.githubusercontent.com/lige47/QuanX-icon-rule/main/icon/05icon/liuliang.png' },
+  ChatGPT:    { url: 'http://www.gstatic.com/generate_204', icon: 'https://registry.npmmirror.com/@lobehub/icons-static-png/latest/files/light/openai.png' },
+  手动选择:    { icon: 'https://raw.githubusercontent.com/Semporia/Hand-Painted-icon/master/Universal/Auto_Speed.png' },
+  All:        { icon: 'https://raw.githubusercontent.com/Semporia/Hand-Painted-icon/master/Universal/Airport.png' },
+  Google:     { icon: 'https://raw.githubusercontent.com/lige47/QuanX-icon-rule/main/icon/04ProxySoft/google(1).png' },
+  HKBank:     { icon: 'https://cdn.jsdelivr.net/gh/tabler/tabler-icons@master/icons/outline/building-bank.svg' },
+  Stock:      { icon: 'https://cdn.jsdelivr.net/gh/tabler/tabler-icons@master/icons/outline/chart-line.svg' },
+  YouTube:    { icon: 'https://raw.githubusercontent.com/fmz200/wool_scripts/main/icons/apps/YouTube_01.png' },
+  BiliBili:   { icon: 'https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/bilibili.png' },
+  Apple:      { icon: 'https://raw.githubusercontent.com/lige47/QuanX-icon-rule/main/icon/03CNSoft/apple.png' },
+  Microsoft:  { icon: 'https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Windows_11.png' },
+  Crypto:     { icon: 'https://raw.githubusercontent.com/lige47/QuanX-icon-rule/main/icon/04ProxySoft/bian.png' },
+  TradingView:{ icon: 'https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/tradingview.svg' },
 }
 
 // 远程规则集公共配置：所有 rule-providers 的通用字段
@@ -194,6 +203,26 @@ function main(config) {
     '直连',
   ])
 
+  // 便捷函数：地区组有节点时返回组名，否则返回 null（由 uniqueList 过滤掉）
+  const regionOrNull = (name) => regionProxyNames.get(name)?.length ? name : null
+
+  const googleGroupProxies      = uniqueList([regionOrNull('自建节点'), 'Proxy'])
+  const hkbankGroupProxies      = uniqueList(['直连', regionOrNull('香港节点'), regionOrNull('自建节点')])
+  const stockGroupProxies       = uniqueList(['直连', regionOrNull('香港节点'), regionOrNull('自建节点')])
+  const youtubeGroupProxies     = uniqueList([
+    regionOrNull('香港节点'), regionOrNull('自建节点'), regionOrNull('日本节点'),
+    regionOrNull('台湾节点'), regionOrNull('新加坡节点'), 'Proxy',
+  ])
+  const appleGroupProxies       = uniqueList([
+    '直连', regionOrNull('自建节点'), regionOrNull('土耳其节点'), regionOrNull('美国节点'),
+  ])
+  const microsoftGroupProxies   = uniqueList(['直连', regionOrNull('自建节点'), 'Proxy'])
+  const cryptoGroupProxies      = uniqueList([regionOrNull('台湾节点'), regionOrNull('新加坡节点'), '直连'])
+  const tradingviewGroupProxies = uniqueList([
+    regionOrNull('香港节点'), regionOrNull('日本节点'),
+    regionOrNull('新加坡节点'), regionOrNull('自建节点'), 'Proxy',
+  ])
+
   // 构建策略组顺序：基础组 -> 地区组 -> All
   config['proxy-groups'] = [
     {
@@ -218,6 +247,69 @@ function main(config) {
       interval: 3600,
       proxies: chatgptProxyNames,
       icon: serviceMeta['ChatGPT'].icon,
+    },
+    {
+      ...urlTestBaseOption,
+      name: 'Google',
+      type: 'fallback',
+      proxies: googleGroupProxies,
+      icon: serviceMeta['Google'].icon,
+    },
+    {
+      ...groupBaseOption,
+      name: 'HKBank',
+      type: 'select',
+      proxies: hkbankGroupProxies,
+      icon: serviceMeta['HKBank'].icon,
+    },
+    {
+      ...groupBaseOption,
+      name: 'Stock',
+      type: 'select',
+      proxies: stockGroupProxies,
+      icon: serviceMeta['Stock'].icon,
+    },
+    {
+      ...urlTestBaseOption,
+      name: 'YouTube',
+      type: 'fallback',
+      proxies: youtubeGroupProxies,
+      icon: serviceMeta['YouTube'].icon,
+    },
+    {
+      ...groupBaseOption,
+      name: 'BiliBili',
+      type: 'select',
+      proxies: ['直连'],
+      icon: serviceMeta['BiliBili'].icon,
+    },
+    {
+      ...groupBaseOption,
+      name: 'Apple',
+      type: 'select',
+      proxies: appleGroupProxies,
+      icon: serviceMeta['Apple'].icon,
+    },
+    {
+      ...urlTestBaseOption,
+      name: 'Microsoft',
+      type: 'fallback',
+      proxies: microsoftGroupProxies,
+      icon: serviceMeta['Microsoft'].icon,
+    },
+    {
+      ...groupBaseOption,
+      name: 'Crypto',
+      type: 'select',
+      proxies: cryptoGroupProxies,
+      icon: serviceMeta['Crypto'].icon,
+    },
+    {
+      ...urlTestBaseOption,
+      name: 'TradingView',
+      type: 'fallback',
+      proxies: tradingviewGroupProxies,
+      icon: serviceMeta['TradingView'].icon,
     },
     {
       ...groupBaseOption,
@@ -268,23 +360,98 @@ function main(config) {
       url: 'https://github.com/Blankwonder/surge-list/raw/master/apple.list',
       path: './ruleset/Blankwonder/apple.list',
     },
+    youtube: {
+      ...ruleProviderCommon,
+      behavior: 'classical',
+      url: 'https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/YouTube/YouTube.list',
+      path: './ruleset/blackmatrix7/YouTube.list',
+    },
+    bilibili: {
+      ...ruleProviderCommon,
+      behavior: 'classical',
+      url: 'https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/BiliBili/BiliBili.list',
+      path: './ruleset/blackmatrix7/BiliBili.list',
+    },
+    apple_all: {
+      ...ruleProviderCommon,
+      behavior: 'classical',
+      url: 'https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Apple/Apple_All_No_Resolve.list',
+      path: './ruleset/blackmatrix7/Apple_All.list',
+    },
+    microsoft: {
+      ...ruleProviderCommon,
+      behavior: 'classical',
+      url: 'https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Microsoft/Microsoft.list',
+      path: './ruleset/blackmatrix7/Microsoft.list',
+    },
+    google_rules: {
+      ...ruleProviderCommon,
+      behavior: 'classical',
+      url: 'https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Google/Google.list',
+      path: './ruleset/blackmatrix7/Google.list',
+    },
+    crypto_rules: {
+      ...ruleProviderCommon,
+      behavior: 'classical',
+      url: 'https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Crypto/Crypto.list',
+      path: './ruleset/blackmatrix7/Crypto.list',
+    },
   }
 
   // 规则顺序很重要：从特例到通配，最后 MATCH 兜底
   config['rules'] = [
+    // 手动指定
     'DOMAIN-KEYWORD,cttic,DIRECT',
     'DOMAIN,alpha123.uk,Proxy',
+    'DOMAIN-SUFFIX,coinbase.com,Proxy',
+    // TradingView 专用
+    'DOMAIN-SUFFIX,tradingview.com,TradingView',
+    'DOMAIN-SUFFIX,tradingview-widget.com,TradingView',
+    'DOMAIN-KEYWORD,tradingview,TradingView',
+    // AI 服务
     'RULE-SET,apple_intelligence,ChatGPT',
     'RULE-SET,ai,ChatGPT',
-    'RULE-SET,blocked,Proxy',
-    'RULE-SET,cn,DIRECT',
-    'DOMAIN,apps.apple.com,Proxy',
-    'DOMAIN-SUFFIX,ls.apple.com,DIRECT',
-    'DOMAIN-SUFFIX,store.apple.com,DIRECT',
-    'RULE-SET,apple,Proxy',
+    // 港区银行
+    'DOMAIN-SUFFIX,bochk.com,HKBank',
+    'DOMAIN-SUFFIX,bocpay.hk,HKBank',
+    'DOMAIN-SUFFIX,za.group,HKBank',
+    'DOMAIN-SUFFIX,zabank.hk,HKBank',
+    'DOMAIN-SUFFIX,hsbc.com,HKBank',
+    // 港区券商
+    'DOMAIN-SUFFIX,hafoo.com.hk,Stock',
+    'DOMAIN-SUFFIX,hafoo.com.cn,Stock',
+    'DOMAIN-SUFFIX,hafoo.com,Stock',
+    'DOMAIN-SUFFIX,hafoo.cn,Stock',
+    'DOMAIN-SUFFIX,fosunwealth.com,Stock',
+    'DOMAIN-SUFFIX,futunn.com,Stock',
+    'DOMAIN-SUFFIX,futuhk.com,Stock',
+    'DOMAIN-SUFFIX,moomoo.com,Stock',
+    'DOMAIN-SUFFIX,interactivebrokers.com,Stock',
+    'DOMAIN-SUFFIX,ibkr.com,Stock',
+    'DOMAIN-SUFFIX,ibkrcampus.com,Stock',
+    'DOMAIN-SUFFIX,ibllc.com,Stock',
+    // 加密货币固定域名
+    'DOMAIN-SUFFIX,bnbstatic.com,Crypto',
+    // 广告屏蔽
     'DOMAIN-SUFFIX,doubleclick.net,REJECT',
     'DOMAIN-SUFFIX,googlesyndication.com,REJECT',
     'DOMAIN-SUFFIX,adsystem.com,REJECT',
+    // 流媒体
+    'RULE-SET,youtube,YouTube',
+    'RULE-SET,bilibili,BiliBili',
+    // Apple（保留部分精确覆盖，再跟完整规则集）
+    'DOMAIN,apps.apple.com,Proxy',
+    'DOMAIN-SUFFIX,ls.apple.com,DIRECT',
+    'DOMAIN-SUFFIX,store.apple.com,DIRECT',
+    'RULE-SET,apple_all,Apple',
+    // Microsoft / Google / 加密货币
+    'RULE-SET,microsoft,Microsoft',
+    'RULE-SET,google_rules,Google',
+    'RULE-SET,crypto_rules,Crypto',
+    // 代理与国内
+    'RULE-SET,blocked,Proxy',
+    'RULE-SET,cn,DIRECT',
+    // 地理位置兜底
     'GEOSITE,private,DIRECT',
     'GEOIP,private,DIRECT,no-resolve',
     'GEOIP,cn,DIRECT',
