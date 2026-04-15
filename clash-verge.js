@@ -96,7 +96,6 @@ const serviceMeta = {
   HKBank:     { icon: 'https://cdn.jsdelivr.net/gh/tabler/tabler-icons@master/icons/outline/building-bank.svg' },
   Stock:      { icon: 'https://cdn.jsdelivr.net/gh/tabler/tabler-icons@master/icons/outline/chart-line.svg' },
   YouTube:    { icon: 'https://raw.githubusercontent.com/fmz200/wool_scripts/main/icons/apps/YouTube_01.png' },
-  BiliBili:   { icon: 'https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/bilibili.png' },
   Apple:      { icon: 'https://raw.githubusercontent.com/lige47/QuanX-icon-rule/main/icon/03CNSoft/apple.png' },
   Microsoft:  { icon: 'https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Windows_11.png' },
   Crypto:     { icon: 'https://raw.githubusercontent.com/lige47/QuanX-icon-rule/main/icon/04ProxySoft/bian.png' },
@@ -278,13 +277,6 @@ function main(config) {
     },
     {
       ...groupBaseOption,
-      name: 'BiliBili',
-      type: 'select',
-      proxies: ['直连'],
-      icon: serviceMeta['BiliBili'].icon,
-    },
-    {
-      ...groupBaseOption,
       name: 'Apple',
       type: 'select',
       proxies: appleGroupProxies,
@@ -438,7 +430,7 @@ function main(config) {
     'DOMAIN-SUFFIX,adsystem.com,REJECT',
     // 流媒体
     'RULE-SET,youtube,YouTube',
-    'RULE-SET,bilibili,BiliBili',
+    'RULE-SET,bilibili,直连',
     // Apple（保留部分精确覆盖，再跟完整规则集）
     'DOMAIN,apps.apple.com,Proxy',
     'DOMAIN-SUFFIX,ls.apple.com,DIRECT',
