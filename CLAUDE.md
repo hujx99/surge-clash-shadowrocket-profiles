@@ -88,6 +88,20 @@ Rules are evaluated top-to-bottom; first match wins:
 - Verify `policy-regex-filter` parameters are case-insensitive and use word boundaries
 - Test: Enable "Alert" on groups (`no-alert=0`) to see which group is active
 
+## Known Pitfalls / 与其他工具的交互
+
+### Tailscale (CGNAT 100.64.0.0/10)
+- **不要**把 `100.64.0.0/10` 放进 Surge 的 `tun-excluded-routes`。Surge 会为被排除的 CIDR 插入一条走物理网卡网关（如 en0 → 192.168.31.1）的静态路由，这条路由会覆盖 Tailscale 自己在 utun 上的 100.64/10 路由，导致所有到 Tailscale peer 的 TCP 被发到本地路由器丢弃（ICMP 和 `tailscale ping` 仍通，TCP 全部超时）。
+- `skip-proxy` 里保留 `100.64.0.0/10` 是安全的（只影响应用层 HTTP 代理判断，不改路由表）。
+- `[Host]` 段的 `*.ts.net = server:100.100.100.100` 是必须的——`hijack-dns = *:53` 会拦 MagicDNS 查询，没有这条 Surge 会把 ts.net 丢给国内 DNS 解析失败。
+- Tailscale exit node 与 Surge Enhanced Mode/TUN **互斥**，两者都想抢默认路由，不能同时启用。
+
+### Docker / 容器网络 (172.16.0.0/12)
+- `tun-excluded-routes` 里的 `172.16.0.0/12` 同样会让 Surge 插入 en0 路由，理论上可能覆盖 Docker 的网络。实际场景下 `docker0` 会建更具体的 `/16` 路由通常能压过，但如果出现容器网络异常可以从这里查。
+
+### IPv6
+- `ipv6 = false` 意味着 Tailscale 分配的 IPv6 地址（`fd7a:...`）不可达，只能用 IPv4。IPv6-only 的 peer 需单独处理。
+
 ## Notes
 
 - API keys and sensitive credentials must **not** be committed (see .gitignore expectations)

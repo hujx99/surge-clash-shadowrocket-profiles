@@ -5,7 +5,13 @@
       "Bash(ls:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Bash(tailscale status *)",
+      "Bash(tailscale ping *)",
+      "Bash(ping -c 3 -W 2000 100.105.19.115)",
+      "Bash(nc -zv -G 5 100.105.19.115 22)",
+      "Bash(tailscale ssh *)",
+      "Bash(route -n get 100.105.19.115)"
     ]
   }
 }
