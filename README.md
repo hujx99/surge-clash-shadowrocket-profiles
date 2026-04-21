@@ -8,8 +8,8 @@
 
 - 项目入口：`README.md`
 - Surge 结构说明：[surge/README.md](surge/README.md)
-- Clash Verge 结构说明：[clash-verge.md](clash-verge.md)
-- Shadowrocket 结构说明：[shadowrocket.md](shadowrocket.md)
+- Clash Verge 结构说明：[clash-verge.md](clash-verge/clash-verge.md)
+- Shadowrocket 结构说明：[shadowrocket.md](shadowrocket/shadowrocket.md)
 - 扩展文档索引：[config-docs/README.md](config-docs/README.md)
 - 历史配置归档：[legacy/README.md](legacy/README.md)
 
@@ -31,12 +31,12 @@
 
 ### Clash Verge
 
-- 覆写脚本：[clash-verge.js](clash-verge.js)
+- 覆写脚本：[clash-verge.js](clash-verge/clash-verge.js)
 - 作用：把订阅中的节点列表转换成与 Surge 结构尽量一致的策略组、规则与 DNS 行为
 
 ### Shadowrocket
 
-- 配置文件：[shadowrocket.conf](shadowrocket.conf)
+- 配置文件：[shadowrocket.conf](shadowrocket/shadowrocket.conf)
 - 作用：用 Shadowrocket 原生格式复刻当前 Surge 的主结构
 
 ## 仓库结构
@@ -44,10 +44,12 @@
 ```text
 .
 ├── README.md
-├── clash-verge.md
-├── clash-verge.js
-├── shadowrocket.conf
-├── shadowrocket.md
+├── clash-verge
+│   ├── clash-verge.md
+│   └── clash-verge.js
+├── shadowrocket
+│   ├── shadowrocket.conf
+│   └── shadowrocket.md
 ├── surge
 │   ├── README.md
 │   ├── Mac.conf
@@ -106,13 +108,13 @@
 
 ### Clash Verge
 
-1. 把 [clash-verge.js](clash-verge.js) 作为覆写脚本导入。
+1. 把 [clash-verge.js](clash-verge/clash-verge.js) 作为覆写脚本导入。
 2. 脚本会根据订阅节点动态生成地区组和服务组。
 3. 如果你修改了 Surge 的策略组、规则或 Host，最好同步检查这个脚本。
 
 ### Shadowrocket
 
-1. 直接导入 [shadowrocket.conf](shadowrocket.conf)。
+1. 直接导入 [shadowrocket.conf](shadowrocket/shadowrocket.conf)。
 2. 如果节点命名与当前正则不一致，先调整地区匹配规则。
 3. 新业务建议先在 Surge 结构中定稿，再同步到另外两个客户端。
 
@@ -120,7 +122,7 @@
 
 1. 先读本页，了解整体结构
 2. 再看 [surge/README.md](surge/README.md)，理解主配置的拆分方式
-3. 再看 [clash-verge.md](clash-verge.md) 和 [shadowrocket.md](shadowrocket.md)，理解另外两套客户端的落地方式
+3. 再看 [clash-verge.md](clash-verge/clash-verge.md) 和 [shadowrocket.md](shadowrocket/shadowrocket.md)，理解另外两套客户端的落地方式
 4. 如需工具或环境配置，再看 [config-docs/README.md](config-docs/README.md)
 5. 如需历史版本参考，最后再看 [legacy/README.md](legacy/README.md)
 

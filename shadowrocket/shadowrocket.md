@@ -80,24 +80,24 @@
 通常需要同时修改：
 
 - [shadowrocket.conf](shadowrocket.conf)
-- [surge/Proxy.conf](surge/Proxy.conf)
-- [clash-verge.js](clash-verge.js)
+- [surge/Proxy.conf](../surge/Proxy.conf)
+- [clash-verge.js](../clash-verge/clash-verge.js)
 
 ### 新增规则
 
 通常需要同时修改：
 
 - [shadowrocket.conf](shadowrocket.conf)
-- [surge/Rule.conf](surge/Rule.conf)
-- [clash-verge.js](clash-verge.js)
+- [surge/Rule.conf](../surge/Rule.conf)
+- [clash-verge.js](../clash-verge/clash-verge.js)
 
 ### 新增 Host / DNS 指定
 
 通常需要同时修改：
 
 - [shadowrocket.conf](shadowrocket.conf) 中的 `[Host]`
-- [surge/Proxy.conf](surge/Proxy.conf) 中的 `[Host]`
-- [clash-verge.js](clash-verge.js) 中的 `hosts` 或 `dns.nameserver-policy`
+- [surge/Proxy.conf](../surge/Proxy.conf) 中的 `[Host]`
+- [clash-verge.js](../clash-verge/clash-verge.js) 中的 `hosts` 或 `dns.nameserver-policy`
 
 ## 维护原则
 
