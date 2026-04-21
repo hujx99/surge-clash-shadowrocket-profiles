@@ -105,24 +105,24 @@ Clash 没有 Surge 那种完全等价的 `[Host]` 段，因此这里拆成两部
 通常需要同时修改：
 
 - [clash-verge.js](clash-verge.js)
-- [surge/Proxy.conf](surge/Proxy.conf)
-- [shadowrocket.conf](shadowrocket.conf)
+- [surge/Proxy.conf](../surge/Proxy.conf)
+- [shadowrocket.conf](../shadowrocket/shadowrocket.conf)
 
 ### 新增规则
 
 通常需要同时修改：
 
 - [clash-verge.js](clash-verge.js)
-- [surge/Rule.conf](surge/Rule.conf)
-- [shadowrocket.conf](shadowrocket.conf)
+- [surge/Rule.conf](../surge/Rule.conf)
+- [shadowrocket.conf](../shadowrocket/shadowrocket.conf)
 
 ### 新增 Host / DNS 指定
 
 通常需要同时修改：
 
 - [clash-verge.js](clash-verge.js) 中的 `hosts` 或 `dns.nameserver-policy`
-- [surge/Proxy.conf](surge/Proxy.conf) 中的 `[Host]`
-- [shadowrocket.conf](shadowrocket.conf) 中的 `[Host]`
+- [surge/Proxy.conf](../surge/Proxy.conf) 中的 `[Host]`
+- [shadowrocket.conf](../shadowrocket/shadowrocket.conf) 中的 `[Host]`
 
 ## 验证建议
 

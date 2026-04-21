@@ -1,7 +1,7 @@
 # Surge 配置说明
 
 `surge/` 目录是当前项目的主配置来源。  
-如果三套客户端之间出现结构差异，通常应该先以这里为基准，再同步到 `clash-verge.js` 和 `shadowrocket.conf`。
+如果三套客户端之间出现结构差异，通常应该先以这里为基准，再同步到 `clash-verge/clash-verge.js` 和 `shadowrocket/shadowrocket.conf`。
 
 ## 文件分工
 
@@ -43,24 +43,24 @@
 通常需要同时修改：
 
 - [Proxy.conf](Proxy.conf)
-- [../clash-verge.js](../clash-verge.js)
-- [../shadowrocket.conf](../shadowrocket.conf)
+- [../clash-verge/clash-verge.js](../clash-verge/clash-verge.js)
+- [../shadowrocket/shadowrocket.conf](../shadowrocket/shadowrocket.conf)
 
 ### 新增规则
 
 通常需要同时修改：
 
 - [Rule.conf](Rule.conf)
-- [../clash-verge.js](../clash-verge.js)
-- [../shadowrocket.conf](../shadowrocket.conf)
+- [../clash-verge/clash-verge.js](../clash-verge/clash-verge.js)
+- [../shadowrocket/shadowrocket.conf](../shadowrocket/shadowrocket.conf)
 
 ### 新增 Host / DNS 指定
 
 通常需要同时修改：
 
 - [Proxy.conf](Proxy.conf) 中的 `[Host]`
-- [../clash-verge.js](../clash-verge.js) 中的 `hosts` 或 `dns.nameserver-policy`
-- [../shadowrocket.conf](../shadowrocket.conf) 中的 `[Host]`
+- [../clash-verge/clash-verge.js](../clash-verge/clash-verge.js) 中的 `hosts` 或 `dns.nameserver-policy`
+- [../shadowrocket/shadowrocket.conf](../shadowrocket/shadowrocket.conf) 中的 `[Host]`
 
 ## 平台差异
 
