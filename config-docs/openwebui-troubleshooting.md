@@ -1,40 +1,78 @@
+# OpenWebUI / Docker 私有仓库推送问题排查
 
+## 适用场景
 
-### 🛠️ 问题总结：Docker 私有仓库 Push 失败排查
+这篇文档记录的是 OpenWebUI 镜像推送到私有 Docker Registry 时，因证书不匹配导致失败的典型问题。
 
-#### 1. 核心现象 (Symptom)
+## 现象
 
-执行 `docker push` 时报错：
+执行 `docker push` 时出现类似报错：
 
-> `Get "https://registry.bingosoft.net/v2/": x509: certificate is valid for ingress.local, not registry.bingosoft.net`
+```text
+Get "https://registry.bingosoft.net/v2/": x509: certificate is valid for ingress.local, not registry.bingosoft.net
+```
 
-#### 2. 根本原因 (Root Cause)
+## 根本原因
 
-* **证书不匹配：** 目标服务器（通常是 K8s Ingress）返回的是默认的 `ingress.local` 证书，而你访问的是 `registry.bingosoft.net`。
-* **Docker 安全策略：** Docker 默认只信任合法的 HTTPS 证书。发现“域名不符”后，为了安全会立即切断连接。
-* **配置缺失：** 你的 `daemon.json` 中之前只有 `dns` 配置，没有将该仓库列入“非安全信任名单”。
+- 目标服务器返回的是默认 Ingress 证书
+- 该证书的域名与实际访问域名不一致
+- Docker 默认严格校验证书，因此会直接拒绝连接
 
-#### 3. 解决步骤 (The Fix)
+## 解决步骤
 
-1. **修改配置：** 在 `/etc/docker/daemon.json` 中合并配置，添加 `insecure-registries` 字段。
+### 1. 修改 Docker 配置
+
+编辑：
+
+```text
+/etc/docker/daemon.json
+```
+
+示例：
+
 ```json
 {
   "dns": ["10.15.0.254", "1.1.1.1"],
   "insecure-registries": ["registry.bingosoft.net"]
 }
-
 ```
 
+### 2. 重新加载并重启 Docker
 
-2. **强制生效：** 执行 `systemctl daemon-reload` 和 `systemctl restart docker`。
-3. **验证：** 通过 `docker info` 确认 `Insecure Registries` 列表中出现了目标域名。
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart docker
+```
 
----
+### 3. 验证是否生效
 
-### 💡 避坑小贴士
+```bash
+docker info
+```
 
-* **JSON 格式：** 在 `daemon.json` 中增加项时，记得前一项末尾要加 **逗号**，否则 Docker 重启会报错。
-* **端口匹配：** 如果将来镜像仓库地址带了端口（如 `registry.bingosoft.net:5000`），那么 `insecure-registries` 列表里也必须**带上端口**，否则依然会触发证书校验。
-* **多机同步：** 如果你是在 openEuler 这种服务器环境操作，记得如果你换到 Mac 本机或另一台服务器，可能也需要同步这个配置。
+确认输出中出现目标域名对应的 `Insecure Registries` 项。
 
-既然 push 问题解决了，**需要我帮你写一个自动打标签并推送到这个私有仓库的 Shell 脚本，方便你以后一键处理 open-webui 的镜像更新吗？**
+## 常见注意点
+
+### JSON 格式不能写错
+
+如果 `daemon.json` 中原本已经有其他字段，记得正确补上逗号。
+
+### 带端口的仓库必须带端口配置
+
+如果未来仓库地址变成：
+
+```text
+registry.bingosoft.net:5000
+```
+
+那么 `insecure-registries` 里也必须写成：
+
+```json
+["registry.bingosoft.net:5000"]
+```
+
+### 这只是兜底方案
+
+更规范的长期方案仍然是修复服务端证书，使其与访问域名匹配。  
+`insecure-registries` 更适合在内网、临时环境或无法立即修证书时使用。
