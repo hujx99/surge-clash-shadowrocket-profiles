@@ -569,7 +569,7 @@ const surgeRules = [
 
   'GEOSITE,private,DIRECT',
   'GEOIP,private,DIRECT,no-resolve',
-  'GEOIP,cn,DIRECT',
+  'GEOIP,cn,DIRECT,no-resolve',
   'MATCH,Proxy',
 ]
 
