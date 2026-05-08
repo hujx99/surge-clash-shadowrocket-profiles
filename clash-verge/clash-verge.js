@@ -9,10 +9,14 @@
 const enable = true
 
 const DIRECT_POLICY = 'DIRECT'
-const baseTestUrl = 'http://www.apple.com/library/test/success.html'
+const baseTestUrl = 'https://cp.cloudflare.com/generate_204'
 const chatgptTestUrl = 'http://www.gstatic.com/generate_204'
 
 const directDnsServers = ['223.5.5.5', '119.29.29.29']
+const domesticDohServers = [
+  'https://dns.alidns.com/dns-query',
+  'https://doh.pub/dns-query',
+]
 const overseasDohServers = [
   'https://1.1.1.1/dns-query',
   'https://8.8.8.8/dns-query',
@@ -21,6 +25,17 @@ const alidnsDohServers = ['https://dns.alidns.com/dns-query']
 const dohPubServers = ['https://doh.pub/dns-query']
 const magicDnsServers = ['100.100.100.100']
 const testflightDnsServers = ['https://1.1.1.1/dns-query']
+
+const geoxUrl = {
+  geoip:
+    'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip-lite.dat',
+  geosite:
+    'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat',
+  mmdb:
+    'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/country-lite.mmdb',
+  asn:
+    'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb',
+}
 
 const groupBaseOption = {
   interval: 300,
@@ -35,7 +50,7 @@ const urlTestBaseOption = {
   tolerance: 50,
 }
 
-const surgeTrafficRegex = /(SSRDOG|XgCloud|xgcloud)/i
+const surgeTrafficRegex = /(SSRDOG|XgCloud)/i
 
 const serviceMeta = {
   Proxy: {
@@ -142,7 +157,7 @@ const surgeStaticHosts = {
 function buildNameserverPolicy() {
   const policy = {}
 
-  addPolicyDomains(policy, ['*.ts.net', '*.tailcc80f6.ts.net'], magicDnsServers)
+  addPolicyDomains(policy, ['*.ts.net'], magicDnsServers)
 
   addPolicyDomains(
     policy,
@@ -216,8 +231,8 @@ const surgeGeneralSection = {
     'enhanced-mode': 'fake-ip',
     'fake-ip-range': '198.18.0.1/16',
     'default-nameserver': directDnsServers,
-    nameserver: overseasDohServers,
-    'proxy-server-nameserver': overseasDohServers,
+    nameserver: domesticDohServers,
+    'proxy-server-nameserver': directDnsServers,
     'direct-nameserver': directDnsServers,
     'fake-ip-filter': [
       '+.lan',
@@ -535,7 +550,7 @@ const surgeRules = [
 
   'DOMAIN-SUFFIX,bnbstatic.com,Crypto',
 
-  'RULE-SET,reject_drop,REJECT',
+  'RULE-SET,reject_drop,REJECT-DROP',
   'RULE-SET,reject,REJECT',
   'RULE-SET,reject_no_drop,REJECT',
   'RULE-SET,ai,ChatGPT',
@@ -558,7 +573,7 @@ const surgeRules = [
   'IP-CIDR,43.171.112.138/32,DIRECT,no-resolve',
   'IP-CIDR,103.151.149.0/24,DIRECT,no-resolve',
   'IP-CIDR,157.119.173.0/24,DIRECT,no-resolve',
-  'RULE-SET,reject_ip,REJECT',
+  'RULE-SET,reject_ip,REJECT-DROP',
   'RULE-SET,neteasemusic_ip,DIRECT',
   'RULE-SET,telegram_ip,Proxy',
   'RULE-SET,telegram_asn_ip,Proxy',
@@ -577,9 +592,17 @@ function applyGeneralSection(config) {
   config.mode = surgeGeneralSection.mode
   config.ipv6 = surgeGeneralSection.ipv6
   config['allow-lan'] = surgeGeneralSection['allow-lan']
-  config['unified-delay'] = true
+  config['unified-delay'] = false
   config['tcp-concurrent'] = true
   config['find-process-mode'] = 'strict'
+  config['geodata-mode'] = true
+  config['geodata-loader'] = config['geodata-loader'] || 'memconservative'
+  config['geo-auto-update'] = true
+  config['geo-update-interval'] = 24
+  config['geox-url'] = {
+    ...(config['geox-url'] || {}),
+    ...geoxUrl,
+  }
   config.profile = {
     ...(config.profile || {}),
     ...surgeGeneralSection.profile,
