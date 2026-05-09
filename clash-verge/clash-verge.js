@@ -12,13 +12,8 @@ const DIRECT_POLICY = 'DIRECT'
 const baseTestUrl = 'http://www.apple.com/library/test/success.html'
 const chatgptTestUrl = 'http://www.gstatic.com/generate_204'
 
-const directDnsServers = ['223.5.5.5', '119.29.29.29']
-const overseasDohServers = [
-  'https://1.1.1.1/dns-query',
-  'https://8.8.8.8/dns-query',
-]
-const alidnsDohServers = ['https://dns.alidns.com/dns-query']
-const dohPubServers = ['https://doh.pub/dns-query']
+const directDns = ['223.5.5.5', '119.29.29.29']
+const proxyServerDns = ['https://dns.alidns.com/dns-query']
 const magicDnsServers = ['100.100.100.100']
 
 const groupBaseOption = {
@@ -116,83 +111,9 @@ function filterProxyNamesByRegex(proxyNames, regex) {
   return proxyNames.filter((name) => regex.test(name))
 }
 
-function normalizePolicyPattern(domain) {
-  if (domain.startsWith('+.')) return domain
-  if (domain.startsWith('*.')) return `+.${domain.slice(2)}`
-  return domain
-}
-
-function addPolicyDomains(policy, domains, servers) {
-  for (const domain of domains) {
-    const normalized = normalizePolicyPattern(domain)
-    policy[normalized] = servers
-    if (!domain.startsWith('*.') && !domain.startsWith('+.')) {
-      policy[`+.${domain}`] = servers
-    }
-  }
-}
-
 const surgeStaticHosts = {
   'dns.alidns.com': ['223.5.5.5', '223.6.6.6'],
-  'doh.pub': ['1.12.12.12', '120.53.53.53'],
   'xray.doveahu.online': '64.186.251.37',
-}
-
-function buildNameserverPolicy() {
-  const policy = {}
-
-  addPolicyDomains(policy, ['*.ts.net', '*.tailcc80f6.ts.net'], magicDnsServers)
-
-  addPolicyDomains(
-    policy,
-    [
-      'xf9pzeslxw.sbs',
-      '10jqka.com.cn',
-      'bochk.com',
-      'hsbc.com.hk',
-      'ccb.com',
-      'ccb.cn',
-      'icbc.com.cn',
-      'boc.cn',
-      'bankofchina.com',
-      'cmbchina.com',
-      'cib.com.cn',
-      'taobao.com',
-      'tmall.com',
-      'alipay.com',
-      'alicdn.com',
-      'xiaohongshu.com',
-      'xhscdn.com',
-      'douyin.com',
-      'douyincdn.com',
-      'apple.com',
-      'icloud.com',
-      'icloud-content.com',
-      'cdn-apple.com',
-      'mzstatic.com',
-      'apple-cloudkit.com',
-      '*.appleimg.com',
-      '*.apple-dns.net',
-    ],
-    alidnsDohServers
-  )
-
-  addPolicyDomains(
-    policy,
-    [
-      '*.baidubce.com',
-      'qq.com',
-      'tencent.com',
-      'weixin.com',
-      'bilibili.com',
-      'hdslb.com',
-      '163.com',
-      'netease.com',
-    ],
-    dohPubServers
-  )
-
-  return policy
 }
 
 const surgeGeneralSection = {
@@ -206,42 +127,25 @@ const surgeGeneralSection = {
   dns: {
     enable: true,
     ipv6: false,
-    'prefer-h3': false,
     'use-hosts': true,
     'use-system-hosts': true,
     'respect-rules': true,
     'enhanced-mode': 'fake-ip',
     'fake-ip-range': '198.18.0.1/16',
-    'default-nameserver': directDnsServers,
-    nameserver: alidnsDohServers,
-    'proxy-server-nameserver': alidnsDohServers,
-    'direct-nameserver': directDnsServers,
+    'default-nameserver': directDns,
+    nameserver: directDns,
+    'proxy-server-nameserver': proxyServerDns,
     'fake-ip-filter': [
       '+.lan',
       '+.local',
       '+.ts.net',
       '*.msftconnecttest.com',
       '*.msftncsi.com',
-      '*.srv.nintendo.net',
-      '*.stun.playstation.net',
-      'xbox.*.microsoft.com',
-      '*.xboxlive.com',
-      '*.logon.battlenet.com.cn',
-      '*.logon.battle.net',
-      '*.battlenet.com.cn',
-      '*.battlenet.com',
-      '*.blzstatic.cn',
-      '*.battle.net',
-      'stun.l.google.com',
       'stun.*',
-      '*.turn.twilio.com',
-      '*.stun.twilio.com',
-      'stun.syncthing.net',
-      'link-ip.nextdns.io',
-      '*.googlevideo.com',
-      '*.gvt1.com',
     ],
-    'nameserver-policy': buildNameserverPolicy(),
+    'nameserver-policy': {
+      '+.ts.net': magicDnsServers,
+    },
   },
 }
 
@@ -534,8 +438,8 @@ const surgeRules = [
 
   'DOMAIN-SUFFIX,bnbstatic.com,Crypto',
 
-  'RULE-SET,reject_drop,REJECT',
-  'RULE-SET,reject,REJECT',
+  'RULE-SET,reject_drop,REJECT-DROP',
+  'RULE-SET,reject,REJECT-DROP',
   'RULE-SET,reject_no_drop,REJECT',
   'RULE-SET,ai,ChatGPT',
   'RULE-SET,apple_intelligence,ChatGPT',
@@ -568,7 +472,7 @@ const surgeRules = [
 
   'GEOSITE,private,DIRECT',
   'GEOIP,private,DIRECT,no-resolve',
-  'GEOIP,cn,DIRECT,no-resolve',
+  'GEOIP,cn,DIRECT',
   'MATCH,Proxy',
 ]
 
@@ -756,7 +660,7 @@ function main(config) {
     {
       ...groupBaseOption,
       name: 'TradingView',
-      type: 'fallback',
+      type: 'select',
       proxies: tradingviewGroupProxies,
       timeout: 5000,
       icon: serviceMeta.TradingView.icon,
@@ -764,7 +668,7 @@ function main(config) {
     {
       ...groupBaseOption,
       name: 'Crypto',
-      type: 'fallback',
+      type: 'select',
       proxies: cryptoGroupProxies,
       timeout: 5000,
       icon: serviceMeta.Crypto.icon,
@@ -772,7 +676,7 @@ function main(config) {
     {
       ...groupBaseOption,
       name: 'HKBank',
-      type: 'fallback',
+      type: 'select',
       proxies: hkbankGroupProxies,
       timeout: 5000,
       icon: serviceMeta.HKBank.icon,
@@ -780,7 +684,7 @@ function main(config) {
     {
       ...groupBaseOption,
       name: 'Stock',
-      type: 'fallback',
+      type: 'select',
       proxies: stockGroupProxies,
       timeout: 5000,
       icon: serviceMeta.Stock.icon,
@@ -795,7 +699,7 @@ function main(config) {
     {
       ...groupBaseOption,
       name: 'Microsoft',
-      type: 'fallback',
+      type: 'select',
       proxies: microsoftGroupProxies,
       icon: serviceMeta.Microsoft.icon,
     },
