@@ -26,7 +26,7 @@ const groupBaseOption = {
 
 const urlTestBaseOption = {
   ...groupBaseOption,
-  tolerance: 150,
+  tolerance: 50,
 }
 
 const surgeTrafficRegex = /(SSRDOG|XgCloud|xgcloud)/i
@@ -141,7 +141,22 @@ const surgeGeneralSection = {
       '+.ts.net',
       '*.msftconnecttest.com',
       '*.msftncsi.com',
+      '*.srv.nintendo.net',
+      '*.stun.playstation.net',
+      'xbox.*.microsoft.com',
+      '*.xboxlive.com',
+      '*.logon.battlenet.com.cn',
+      '*.logon.battle.net',
+      '*.battlenet.com.cn',
+      '*.battlenet.com',
+      '*.blzstatic.cn',
+      '*.battle.net',
+      'stun.l.google.com',
       'stun.*',
+      '*.turn.twilio.com',
+      '*.stun.twilio.com',
+      'stun.syncthing.net',
+      'link-ip.nextdns.io',
     ],
     'nameserver-policy': {
       '+.ts.net': magicDnsServers,
@@ -206,6 +221,11 @@ const ruleProviderCommon = {
   format: 'text',
   interval: 86400,
   behavior: 'classical',
+}
+
+const ipRuleProviderCommon = {
+  ...ruleProviderCommon,
+  behavior: 'ipcidr',
 }
 
 const surgeRuleProviders = {
@@ -300,42 +320,42 @@ const surgeRuleProviders = {
     path: './ruleset/skk/global.list',
   },
   reject_ip: {
-    ...ruleProviderCommon,
+    ...ipRuleProviderCommon,
     url: 'https://ruleset.skk.moe/List/ip/reject.conf',
     path: './ruleset/skk/reject-ip.list',
   },
   neteasemusic_ip: {
-    ...ruleProviderCommon,
+    ...ipRuleProviderCommon,
     url: 'https://ruleset.skk.moe/List/ip/neteasemusic.conf',
     path: './ruleset/skk/neteasemusic-ip.list',
   },
   telegram_ip: {
-    ...ruleProviderCommon,
+    ...ipRuleProviderCommon,
     url: 'https://ruleset.skk.moe/List/ip/telegram.conf',
     path: './ruleset/skk/telegram-ip.list',
   },
   telegram_asn_ip: {
-    ...ruleProviderCommon,
+    ...ipRuleProviderCommon,
     url: 'https://ruleset.skk.moe/List/ip/telegram_asn.conf',
     path: './ruleset/skk/telegram-asn-ip.list',
   },
   stream_ip: {
-    ...ruleProviderCommon,
+    ...ipRuleProviderCommon,
     url: 'https://ruleset.skk.moe/List/ip/stream.conf',
     path: './ruleset/skk/stream-ip.list',
   },
   lan_ip: {
-    ...ruleProviderCommon,
+    ...ipRuleProviderCommon,
     url: 'https://ruleset.skk.moe/List/ip/lan.conf',
     path: './ruleset/skk/lan-ip.list',
   },
   domestic_ip: {
-    ...ruleProviderCommon,
+    ...ipRuleProviderCommon,
     url: 'https://ruleset.skk.moe/List/ip/domestic.conf',
     path: './ruleset/skk/domestic-ip.list',
   },
   china_ip: {
-    ...ruleProviderCommon,
+    ...ipRuleProviderCommon,
     url: 'https://ruleset.skk.moe/List/ip/china_ip.conf',
     path: './ruleset/skk/china-ip.list',
   },
@@ -472,7 +492,7 @@ const surgeRules = [
 
   'GEOSITE,private,DIRECT',
   'GEOIP,private,DIRECT,no-resolve',
-  'GEOIP,cn,DIRECT',
+  'GEOIP,cn,DIRECT,no-resolve',
   'MATCH,Proxy',
 ]
 
