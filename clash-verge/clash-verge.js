@@ -20,7 +20,6 @@ const overseasDohServers = [
 const alidnsDohServers = ['https://dns.alidns.com/dns-query']
 const dohPubServers = ['https://doh.pub/dns-query']
 const magicDnsServers = ['100.100.100.100']
-const testflightDnsServers = ['https://1.1.1.1/dns-query']
 
 const groupBaseOption = {
   interval: 300,
@@ -32,7 +31,7 @@ const groupBaseOption = {
 
 const urlTestBaseOption = {
   ...groupBaseOption,
-  tolerance: 50,
+  tolerance: 150,
 }
 
 const surgeTrafficRegex = /(SSRDOG|XgCloud|xgcloud)/i
@@ -193,8 +192,6 @@ function buildNameserverPolicy() {
     dohPubServers
   )
 
-  policy['testflight.apple.com'] = testflightDnsServers
-
   return policy
 }
 
@@ -209,15 +206,15 @@ const surgeGeneralSection = {
   dns: {
     enable: true,
     ipv6: false,
-    'prefer-h3': true,
+    'prefer-h3': false,
     'use-hosts': true,
     'use-system-hosts': true,
     'respect-rules': true,
     'enhanced-mode': 'fake-ip',
     'fake-ip-range': '198.18.0.1/16',
     'default-nameserver': directDnsServers,
-    nameserver: overseasDohServers,
-    'proxy-server-nameserver': overseasDohServers,
+    nameserver: alidnsDohServers,
+    'proxy-server-nameserver': alidnsDohServers,
     'direct-nameserver': directDnsServers,
     'fake-ip-filter': [
       '+.lan',
@@ -241,6 +238,8 @@ const surgeGeneralSection = {
       '*.stun.twilio.com',
       'stun.syncthing.net',
       'link-ip.nextdns.io',
+      '*.googlevideo.com',
+      '*.gvt1.com',
     ],
     'nameserver-policy': buildNameserverPolicy(),
   },
@@ -579,7 +578,7 @@ function applyGeneralSection(config) {
   config['allow-lan'] = surgeGeneralSection['allow-lan']
   config['unified-delay'] = true
   config['tcp-concurrent'] = true
-  config['find-process-mode'] = 'strict'
+  config['find-process-mode'] = 'off'
   config.profile = {
     ...(config.profile || {}),
     ...surgeGeneralSection.profile,
