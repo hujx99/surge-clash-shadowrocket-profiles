@@ -9,7 +9,7 @@
 const enable = true
 
 const DIRECT_POLICY = 'DIRECT'
-const baseTestUrl = 'http://www.apple.com/library/test/success.html'
+const baseTestUrl = 'http://www.gstatic.com/generate_204'
 const chatgptTestUrl = 'http://www.gstatic.com/generate_204'
 
 const directDns = ['223.5.5.5', '119.29.29.29']
