@@ -249,7 +249,7 @@ const surgeRegionDefs = [
   {
     name: '🇺🇳自建节点',
     regex: buildRegionRegex(['自建', '家宽', 'Home', 'DIY', 'DMIT']),
-    type: 'fallback',
+    type: 'url-test',
     hidden: false,
     icon: serviceMeta['🇺🇳自建节点'].icon,
   },
