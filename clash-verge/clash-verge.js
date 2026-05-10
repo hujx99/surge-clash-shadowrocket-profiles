@@ -1,21 +1,40 @@
 /***
  * Clash Verge Rev override aligned to Surge sections:
- * - General
+ * - General / DNS
+ * - Hosts
  * - Proxy Group
  * - Rule
- * - Host
+ *
+ * 文件结构（搜 ── 跳转）：
+ *   开关 & 测试 URL · DNS 服务器 · 策略组默认参数 · 工具函数
+ *   静态 Hosts · DNS 分流域名 · General 段（含 DNS）
+ *   地区策略组 · 规则提供方 · 路由规则 · 入口
  */
 
+// ── 开关 & 测试 URL ────────────────────────────────────
 const enable = true
-
 const DIRECT_POLICY = 'DIRECT'
+// 节点测速地址（Google 204，全球可达、延迟低）
 const baseTestUrl = 'http://www.gstatic.com/generate_204'
 const chatgptTestUrl = 'http://www.gstatic.com/generate_204'
 
-const directDns = ['223.5.5.5', '119.29.29.29']
-const proxyServerDns = ['https://dns.alidns.com/dns-query']
+// ── DNS 服务器 ─────────────────────────────────────────
+// Bootstrap：明文 UDP，仅用于解析 nameserver 中 DoH 的主机名
+const directBootstrapDns = ['223.5.5.5', '119.29.29.29']
+// 主 DNS：直连可达的国内 DoH（替代明文 UDP，抗污染）
+const directDohServers = [
+  'https://dns.alidns.com/dns-query',
+  'https://doh.pub/dns-query',
+]
+// 兜底 DNS：海外 DoH，靠 respect-rules 经 Proxy 出站
+const proxyDohServers = [
+  'https://1.1.1.1/dns-query',
+  'https://8.8.8.8/dns-query',
+]
+// Tailscale MagicDNS
 const magicDnsServers = ['100.100.100.100']
 
+// ── 策略组默认参数 ─────────────────────────────────────
 const groupBaseOption = {
   interval: 300,
   timeout: 3000,
@@ -29,8 +48,10 @@ const urlTestBaseOption = {
   tolerance: 50,
 }
 
+// 流量信息节点（机场用来显示套餐用量），不参与手动选择 / 策略组
 const surgeTrafficRegex = /(SSRDOG|XgCloud|xgcloud)/i
 
+// 策略组图标（仅展示用，不影响选路）
 const serviceMeta = {
   Proxy: {
     icon: 'https://raw.githubusercontent.com/Semporia/Hand-Painted-icon/master/Universal/Airport.png',
@@ -71,10 +92,12 @@ const serviceMeta = {
   },
 }
 
+// ── 工具函数 ───────────────────────────────────────────
 function escapeRegex(text) {
   return String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
+// 构造地区匹配正则：keywords 直接匹配（中文/全词），codes 用单词边界（避免 US 命中 Russia）
 function buildRegionRegex(keywords, codes = []) {
   const keywordPatterns = keywords.map((keyword) =>
     String(keyword)
@@ -111,11 +134,69 @@ function filterProxyNamesByRegex(proxyNames, regex) {
   return proxyNames.filter((name) => regex.test(name))
 }
 
+// ── 静态 Hosts ─────────────────────────────────────────
 const surgeStaticHosts = {
+  // DoH 主机名 bootstrap：固定 IP，避免"要查 DoH 得先查 DoH"的鸡蛋问题
   'dns.alidns.com': ['223.5.5.5', '223.6.6.6'],
+  'doh.pub': ['1.12.12.12', '120.53.53.53'],
+  // 自建节点（VPS IP 变更需手动更新）
   'xray.doveahu.online': '64.186.251.37',
 }
 
+// ── DNS 分流域名集 ─────────────────────────────────────
+// 强制走国内 DoH：避免 fallback-filter 把这些域名误判为境外
+// （Apple/银行/CN 大厂在境外有 anycast 或 CDN 节点，仅靠 geoip-CN 判断会误伤）
+
+// Apple 全家桶：强制国内 DoH，让 iCloud / CDN 解析到 CN edge
+const appleCnDomains = [
+  '+.apple.com',
+  '+.icloud.com',
+  '+.icloud-content.com',
+  '+.cdn-apple.com',
+  '+.mzstatic.com',
+  '+.apple-cloudkit.com',
+  '+.appleimg.com',
+  '+.apple-dns.net',
+]
+
+// 国内金融 / 银行 / 券商：稳定解析 + 不进 fake-ip（部分 App 会校验真实 IP）
+const cnFinanceDomains = [
+  '+.bochk.com',
+  '+.hsbc.com.hk',
+  '+.ccb.com',
+  '+.ccb.cn',
+  '+.icbc.com.cn',
+  '+.boc.cn',
+  '+.bankofchina.com',
+  '+.cmbchina.com',
+  '+.cib.com.cn',
+  '+.10jqka.com.cn',
+]
+
+// 国内高频 App（腾讯 / 阿里 / 字节 / B站 / 网易 / 小红书）：避免 fallback-filter 误判
+const cnAppDomains = [
+  '+.qq.com',
+  '+.tencent.com',
+  '+.weixin.com',
+  '+.taobao.com',
+  '+.tmall.com',
+  '+.alipay.com',
+  '+.alicdn.com',
+  '+.bilibili.com',
+  '+.hdslb.com',
+  '+.163.com',
+  '+.netease.com',
+  '+.xiaohongshu.com',
+  '+.xhscdn.com',
+  '+.douyin.com',
+  '+.douyincdn.com',
+  '+.baidubce.com',
+]
+
+// 强制走海外 DoH：TestFlight 国内 DNS 偶发异常（与 Surge [Host] 处理一致）
+const overseasDohDomains = ['testflight.apple.com', '+.testflight.apple.com']
+
+// ── General 段（含 DNS） ───────────────────────────────
 const surgeGeneralSection = {
   ipv6: false,
   mode: 'rule',
@@ -129,12 +210,24 @@ const surgeGeneralSection = {
     ipv6: false,
     'use-hosts': true,
     'use-system-hosts': true,
+    // 让 DNS 查询走路由规则；海外 DoH 因此能经 Proxy 出站
     'respect-rules': true,
     'enhanced-mode': 'fake-ip',
     'fake-ip-range': '198.18.0.1/16',
-    'default-nameserver': directDns,
-    nameserver: directDns,
-    'proxy-server-nameserver': proxyServerDns,
+    'default-nameserver': directBootstrapDns,
+    nameserver: directDohServers,
+    fallback: proxyDohServers,
+    // 分流 DNS：nameserver 解出非 CN IP / 命中 geosite:gfw / 命中 invalid CIDR
+    // 时改用 fallback（≈ Surge 的 encrypted-dns-follow-outbound-mode）
+    'fallback-filter': {
+      geoip: true,
+      'geoip-code': 'CN',
+      geosite: ['gfw'],
+      ipcidr: ['240.0.0.0/4', '0.0.0.0/32'],
+    },
+    // 解析机场节点的域名 —— 必须直连可达，否则会出现"解节点要先连节点"的循环
+    'proxy-server-nameserver': directDohServers,
+    // 以下域名跳过 fake-ip：STUN / Xbox / 战网 / Tailscale / 银行（IP 校验敏感）
     'fake-ip-filter': [
       '+.lan',
       '+.local',
@@ -157,13 +250,22 @@ const surgeGeneralSection = {
       '*.stun.twilio.com',
       'stun.syncthing.net',
       'link-ip.nextdns.io',
+      ...cnFinanceDomains,
     ],
+    // per-domain 强制 DNS（覆盖 fallback-filter 的判定）
     'nameserver-policy': {
+      // 精确匹配优先：testflight.apple.com 必须排在 +.apple.com 之前
+      [overseasDohDomains.join(',')]: proxyDohServers,
       '+.ts.net': magicDnsServers,
+      [appleCnDomains.join(',')]: directDohServers,
+      [cnFinanceDomains.join(',')]: directDohServers,
+      [cnAppDomains.join(',')]: directDohServers,
     },
   },
 }
 
+// ── 地区策略组定义 ─────────────────────────────────────
+// 用 regex 从订阅节点名里筛出对应地区，url-test 自动选最低延迟
 const surgeRegionDefs = [
   {
     name: '🇺🇳自建节点',
@@ -216,16 +318,18 @@ const surgeRegionDefs = [
   },
 ]
 
+// ── 规则提供方（rule providers） ───────────────────────
+// 全部从 SKK / Blankwonder 订阅，每天刷新一次
 const ruleProviderCommon = {
   type: 'http',
   format: 'text',
   interval: 86400,
-  behavior: 'classical',
+  behavior: 'classical', // 域名/IP/进程混合规则
 }
 
 const ipRuleProviderCommon = {
   ...ruleProviderCommon,
-  behavior: 'ipcidr',
+  behavior: 'ipcidr', // 纯 IP 段规则（更高效）
 }
 
 const surgeRuleProviders = {
@@ -361,17 +465,20 @@ const surgeRuleProviders = {
   },
 }
 
+// ── 路由规则（自上而下匹配，命中即停） ─────────────────
 const surgeRules = [
+  // 0. unbreak 兜底（防止订阅规则误伤）+ DoH 入站方向
   'RULE-SET,unbreak,DIRECT',
   'DOMAIN,dns.alidns.com,DIRECT',
   'DOMAIN,doh.pub,DIRECT',
-  'DOMAIN-SUFFIX,xf9pzeslxw.sbs,DIRECT',
+  'DOMAIN-SUFFIX,xf9pzeslxw.sbs,DIRECT', // 机场订阅域
   'DOMAIN,dns.google,Proxy',
   'DOMAIN-SUFFIX,cloudflare-dns.com,Proxy',
   'DOMAIN-SUFFIX,dns.quad9.net,Proxy',
   'DOMAIN-SUFFIX,dns.nextdns.io,Proxy',
   'DOMAIN-SUFFIX,dns.adguard-dns.com,Proxy',
 
+  // 1. 字节系 / 高通：强制直连（避免走代理触发风控）
   'DOMAIN-SUFFIX,qualcomm.cn,DIRECT',
   'DOMAIN-SUFFIX,bytedance.com,DIRECT',
   'DOMAIN-SUFFIX,byteimg.com,DIRECT',
@@ -379,15 +486,18 @@ const surgeRules = [
   'DOMAIN-SUFFIX,ibytedtos.com,DIRECT',
   'DOMAIN-SUFFIX,ibytedos.com,DIRECT',
 
+  // 2. 加密货币交易所
   'DOMAIN-SUFFIX,binance.com,Crypto',
   'DOMAIN-SUFFIX,saasexch.com,Crypto',
   'DOMAIN-SUFFIX,astherus.finance,Crypto',
   'DOMAIN-SUFFIX,forter.com,Crypto',
   'DOMAIN-KEYWORD,binance,Crypto',
 
+  // 3. 国内特殊域名：同花顺直连、cttic 工作站直连
   'DOMAIN-SUFFIX,hexin.cn,DIRECT',
   'DOMAIN-KEYWORD,cttic,DIRECT',
 
+  // 4. 单点域名覆盖：CF 节点、Apple Analytics 走港线（避免被识别为机器流量）
   'DOMAIN-SUFFIX,coinbase.com,Proxy',
   'DOMAIN,www.cloudflare.com,Proxy',
   'DOMAIN,cdnjs.cloudflare.com,Proxy',
@@ -395,6 +505,7 @@ const surgeRules = [
   'DOMAIN,app-analytics-services.com,🇭🇰 香港节点',
   'DOMAIN,app-analytics-services-att.com,🇭🇰 香港节点',
 
+  // 5. TradingView
   'DOMAIN-SUFFIX,tradingview.com,TradingView',
   'DOMAIN-SUFFIX,tradingview-widget.com,TradingView',
   'DOMAIN-KEYWORD,tradingview,TradingView',
@@ -406,6 +517,7 @@ const surgeRules = [
   'DOMAIN-SUFFIX,tvextbot.com,TradingView',
   'DOMAIN-SUFFIX,tvwidget.com,TradingView',
 
+  // 6. YouTube
   'DOMAIN-SUFFIX,youtube.com,YouTube',
   'DOMAIN-SUFFIX,youtu.be,YouTube',
   'DOMAIN-SUFFIX,googlevideo.com,YouTube',
@@ -413,6 +525,7 @@ const surgeRules = [
   'DOMAIN-SUFFIX,ggpht.com,YouTube',
   'DOMAIN-SUFFIX,youtubei.googleapis.com,YouTube',
 
+  // 7. AI 服务（OpenAI / Anthropic / 第三方依赖：Intercom 客服 / Datadog 日志 / Statsig 实验 / Segment 埋点）
   'DOMAIN-SUFFIX,chatgpt.com,ChatGPT',
   'DOMAIN-SUFFIX,openai.com,ChatGPT',
   'DOMAIN-SUFFIX,oaistatic.com,ChatGPT',
@@ -429,11 +542,13 @@ const surgeRules = [
   'DOMAIN-SUFFIX,segment.io,ChatGPT',
   'DOMAIN-SUFFIX,segment.com,ChatGPT',
 
+  // 8. 拦截：Apple SiteAssociation 探测、反诈 96110 / 国家反诈中心域名
   'DOMAIN,app-site-association.cdn-apple.com,REJECT',
   'DOMAIN,prpr.96110.cn.com,DIRECT',
   'DOMAIN-KEYWORD,96110,REJECT',
   'DOMAIN-SUFFIX,gjfzpt.cn,REJECT',
 
+  // 9. 香港银行
   'DOMAIN-SUFFIX,bochk.com,HKBank',
   'DOMAIN-SUFFIX,bocpay.hk,HKBank',
   'DOMAIN-SUFFIX,za.group,HKBank',
@@ -441,6 +556,7 @@ const surgeRules = [
   'DOMAIN-SUFFIX,hsbc.com.hk,HKBank',
   'DOMAIN-SUFFIX,hsbc.com,HKBank',
 
+  // 10. 券商
   'DOMAIN-SUFFIX,hafoo.com.hk,Stock',
   'DOMAIN-SUFFIX,hafoo.com.cn,Stock',
   'DOMAIN-SUFFIX,hafoo.com,Stock',
@@ -458,6 +574,7 @@ const surgeRules = [
 
   'DOMAIN-SUFFIX,bnbstatic.com,Crypto',
 
+  // 11. 域名规则集（SKK）—— 顺序敏感：广告拦截在前，分类规则在后
   'RULE-SET,reject_drop,REJECT-DROP',
   'RULE-SET,reject,REJECT-DROP',
   'RULE-SET,reject_no_drop,REJECT',
@@ -476,7 +593,10 @@ const surgeRules = [
   'RULE-SET,direct,DIRECT',
   'RULE-SET,global,Proxy',
 
+  // 12. IP 规则
+  // 100.64/10 = Tailscale CGNAT，必须直连（绝不能进 TUN 排除路由，会断 Tailscale）
   'IP-CIDR,100.64.0.0/10,DIRECT,no-resolve',
+  // 工作 / 内网专用 IP（cttic 等）
   'IP-CIDR,218.240.180.173/32,DIRECT,no-resolve',
   'IP-CIDR,43.171.112.138/32,DIRECT,no-resolve',
   'IP-CIDR,103.151.149.0/24,DIRECT,no-resolve',
@@ -490,12 +610,15 @@ const surgeRules = [
   'RULE-SET,domestic_ip,DIRECT',
   'RULE-SET,china_ip,DIRECT',
 
+  // 13. 兜底：内网 / GEOIP CN 直连，其余走 Proxy
   'GEOSITE,private,DIRECT',
   'GEOIP,private,DIRECT,no-resolve',
   'GEOIP,cn,DIRECT,no-resolve',
   'MATCH,Proxy',
 ]
 
+// ── 应用 General 段 ────────────────────────────────────
+// 把 surgeGeneralSection 合并进订阅原 config（保留订阅自带的 fake-ip-filter 等条目）
 function applyGeneralSection(config) {
   config.mode = surgeGeneralSection.mode
   config.ipv6 = surgeGeneralSection.ipv6
@@ -537,6 +660,8 @@ function applyGeneralSection(config) {
   }
 }
 
+// ── 入口 ───────────────────────────────────────────────
+// Clash Verge Rev 调用：function main(config) { ... return config }
 function main(config) {
   config = config || {}
 
@@ -546,6 +671,7 @@ function main(config) {
 
   applyGeneralSection(config)
 
+  // 节点名集合：全部节点 / 排除流量信息节点（手动选择组用）
   const allProxyNames = uniqueList(
     config.proxies.map((proxy) => proxy?.name).filter(Boolean)
   )
@@ -554,6 +680,7 @@ function main(config) {
   )
   const manualGroupProxies = listOrFallback(manualProxyNames, [DIRECT_POLICY])
 
+  // 按地区正则筛选节点，构造地区策略组
   const regionProxyGroups = []
   const regionProxyNames = new Map()
 
@@ -572,9 +699,11 @@ function main(config) {
     })
   })
 
+  // 地区组若实际无节点（订阅没该地区），引用时返回 null 由 listOrFallback 过滤掉
   const regionOrNull = (name) =>
     regionProxyNames.get(name)?.length ? name : null
 
+  // ── 各服务策略组的备选项（顺序即优先级） ────────────
   const proxyGroupProxies = listOrFallback(
     [
       regionOrNull('🇺🇳自建节点'),
@@ -646,6 +775,7 @@ function main(config) {
     [DIRECT_POLICY, 'Proxy']
   )
 
+  // ── 输出 proxy-groups（顺序决定 GUI 展示顺序） ──────
   config['proxy-groups'] = [
     {
       ...groupBaseOption,
@@ -669,6 +799,13 @@ function main(config) {
       type: 'fallback',
       proxies: googleGroupProxies,
       icon: serviceMeta.Google.icon,
+    },
+    {
+      ...groupBaseOption,
+      name: 'Microsoft',
+      type: 'select',
+      proxies: microsoftGroupProxies,
+      icon: serviceMeta.Microsoft.icon,
     },
     {
       ...groupBaseOption,
@@ -715,13 +852,6 @@ function main(config) {
       type: 'select',
       proxies: appleGroupProxies,
       icon: serviceMeta.Apple.icon,
-    },
-    {
-      ...groupBaseOption,
-      name: 'Microsoft',
-      type: 'select',
-      proxies: microsoftGroupProxies,
-      icon: serviceMeta.Microsoft.icon,
     },
     {
       ...groupBaseOption,
