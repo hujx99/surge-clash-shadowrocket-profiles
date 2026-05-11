@@ -19,13 +19,9 @@ const baseTestUrl = 'http://www.gstatic.com/generate_204'
 const chatgptTestUrl = 'http://www.gstatic.com/generate_204'
 
 // ── DNS 服务器 ─────────────────────────────────────────
-// Bootstrap：明文 UDP，仅用于解析 nameserver 中 DoH 的主机名
+// 国内 DNS：优先用明文 UDP，减少浏览器首次解析时的 DoH 握手抖动
 const directBootstrapDns = ['223.5.5.5', '119.29.29.29']
-// 主 DNS：直连可达的国内 DoH（替代明文 UDP，抗污染）
-const directDohServers = [
-  'https://dns.alidns.com/dns-query',
-  'https://doh.pub/dns-query',
-]
+const directDnsServers = directBootstrapDns
 // 兜底 DNS：海外 DoH，靠 respect-rules 经 Proxy 出站
 const proxyDohServers = [
   'https://1.1.1.1/dns-query',
@@ -215,7 +211,7 @@ const surgeGeneralSection = {
     'enhanced-mode': 'fake-ip',
     'fake-ip-range': '198.18.0.1/16',
     'default-nameserver': directBootstrapDns,
-    nameserver: directDohServers,
+    nameserver: directDnsServers,
     fallback: proxyDohServers,
     // 分流 DNS：nameserver 解出非 CN IP / 命中 geosite:gfw / 命中 invalid CIDR
     // 时改用 fallback（≈ Surge 的 encrypted-dns-follow-outbound-mode）
@@ -226,7 +222,7 @@ const surgeGeneralSection = {
       ipcidr: ['240.0.0.0/4', '0.0.0.0/32'],
     },
     // 解析机场节点的域名 —— 必须直连可达，否则会出现"解节点要先连节点"的循环
-    'proxy-server-nameserver': directDohServers,
+    'proxy-server-nameserver': directDnsServers,
     // 以下域名跳过 fake-ip：STUN / Xbox / 战网 / Tailscale / 银行（IP 校验敏感）
     'fake-ip-filter': [
       '+.lan',
@@ -257,9 +253,9 @@ const surgeGeneralSection = {
       // 精确匹配优先：testflight.apple.com 必须排在 +.apple.com 之前
       [overseasDohDomains.join(',')]: proxyDohServers,
       '+.ts.net': magicDnsServers,
-      [appleCnDomains.join(',')]: directDohServers,
-      [cnFinanceDomains.join(',')]: directDohServers,
-      [cnAppDomains.join(',')]: directDohServers,
+      [appleCnDomains.join(',')]: directDnsServers,
+      [cnFinanceDomains.join(',')]: directDnsServers,
+      [cnAppDomains.join(',')]: directDnsServers,
     },
   },
 }
@@ -771,8 +767,8 @@ function main(config) {
     [DIRECT_POLICY, 'Proxy']
   )
   const microsoftGroupProxies = listOrFallback(
-    [DIRECT_POLICY, 'Proxy', regionOrNull('🇺🇳自建节点')],
-    [DIRECT_POLICY, 'Proxy']
+    [regionOrNull('🇺🇳自建节点')],
+    ['Proxy']
   )
 
   // ── 输出 proxy-groups（顺序决定 GUI 展示顺序） ──────
